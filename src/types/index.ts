@@ -135,12 +135,14 @@ export interface EnvDataPoint {
 export interface AuditLog {
   id: string;
   action: string;
-  targetType: 'task' | 'inspection' | 'workorder' | 'emergency' | 'report' | 'threshold' | 'message';
+  targetType: 'task' | 'inspection' | 'workorder' | 'emergency' | 'report' | 'threshold' | 'message' | 'drill';
   targetId: string;
   operator: string;
   timestamp: string;
   detail: string;
   route?: string;
+  relatedObjectType?: string;
+  relatedObjectId?: string;
 }
 
 export interface DisposalStep {
@@ -164,6 +166,19 @@ export interface EmergencyEvent {
   disposalSteps?: DisposalStep[];
   closedAt?: string;
   closedBy?: string;
+  reviewConclusion?: string;
+  disposalDuration?: string;
+}
+
+export interface DrillPlan {
+  id: string;
+  eventId: string;
+  eventLocation: string;
+  eventType: string;
+  eventDescription: string;
+  createdAt: string;
+  createdBy: string;
+  status: 'planned' | 'notified';
 }
 
 export interface OreSample {
@@ -229,7 +244,7 @@ export interface EnergyData {
 
 export interface Message {
   id: string;
-  type: 'access' | 'alarm' | 'fault' | 'quality' | 'dispatch' | 'emergency' | 'report' | 'approval';
+  type: 'access' | 'alarm' | 'fault' | 'quality' | 'dispatch' | 'emergency' | 'report' | 'approval' | 'drill';
   title: string;
   content: string;
   sender: string;
@@ -243,6 +258,8 @@ export interface Message {
   confirmedAt?: string;
   relatedRoute?: string;
   relatedId?: string;
+  sourceOperator?: string;
+  sourceTimestamp?: string;
 }
 
 export interface DangerZone {

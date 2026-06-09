@@ -3,7 +3,7 @@ import type {
   Miner, AlarmRecord, DangerZone,
   MiningFace, Vehicle, ProductionTask,
   Equipment, InspectionRecord, MaintenanceOrder,
-  MonitorPoint, EmergencyEvent, DisposalStep,
+  MonitorPoint, EmergencyEvent, DisposalStep, DrillPlan,
   OreSample, ProcessAdjustment,
   FinanceReport, Message, AuditLog,
 } from '@/types';
