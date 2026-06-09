@@ -1,0 +1,18 @@
+import type { FinanceReport, Message } from '@/types';
+
+export const financeReports: FinanceReport[] = [
+  { id: 'FR001', period: '2026年5月', teamOutputs: [{ team: '采掘一班', output: 28500, target: 30000 }, { team: '采掘二班', output: 22300, target: 25000 }, { team: '运输班', output: 45200, target: 45000 }], maintenanceCosts: [{ category: '配件采购', amount: 156000 }, { category: '人工维修', amount: 89000 }, { category: '外包维修', amount: 45000 }, { category: '润滑油料', amount: 23000 }], energyConsumption: [{ month: '1月', electricity: 280000, water: 15000, fuel: 45000 }, { month: '2月', electricity: 265000, water: 14200, fuel: 42000 }, { month: '3月', electricity: 290000, water: 15800, fuel: 48000 }, { month: '4月', electricity: 310000, water: 16500, fuel: 51000 }, { month: '5月', electricity: 295000, water: 15200, fuel: 47000 }], totalRevenue: 4850000, totalCost: 2930200, profit: 1919800, profitMargin: 39.6 },
+];
+
+export const messages: Message[] = [
+  { id: 'MSG001', type: 'access', title: '矿工准入通知', content: '张建国已通过健康核查与培训验证，准入下井', sender: '安全准入系统', recipients: ['调度员-李明'], timestamp: '2026-06-09 06:30:00', read: true, hasVoucher: true, voucherUrl: '/vouchers/MSG001.pdf', level: 'info' },
+  { id: 'MSG002', type: 'alarm', title: '危险区域入侵报警', content: '张建国进入A1废弃巷道危险区域，已发送救援指令', sender: '人员定位系统', recipients: ['安全员-赵强', '调度员-李明'], timestamp: '2026-06-09 08:32:15', read: false, hasVoucher: true, voucherUrl: '/vouchers/MSG002.pdf', level: 'critical' },
+  { id: 'MSG003', type: 'fault', title: '设备故障预警', content: '排水泵-01检测到异常振动与高温，已自动生成维修工单', sender: '设备管理系统', recipients: ['设备管理员-陈刚'], timestamp: '2026-06-09 09:15:30', read: false, hasVoucher: true, voucherUrl: '/vouchers/MSG003.pdf', level: 'error' },
+  { id: 'MSG004', type: 'quality', title: '矿石品位异常', content: 'C2采掘面样本品位等级为低品位，已调整选矿参数', sender: '质量检测系统', recipients: ['调度员-李明', '质量检测员-王海波'], timestamp: '2026-06-08 14:25:00', read: true, hasVoucher: false, level: 'warning' },
+  { id: 'MSG005', type: 'dispatch', title: '生产调度变更', content: 'D1采掘面任务目标由900吨调整为1000吨，请相关人员确认', sender: '生产调度系统', recipients: ['采掘二班', '运输班'], timestamp: '2026-06-09 07:00:00', read: true, hasVoucher: true, voucherUrl: '/vouchers/MSG005.pdf', level: 'info' },
+  { id: 'MSG006', type: 'emergency', title: '瓦斯超标紧急通知', content: '通风巷瓦斯浓度连续超标，已启动应急广播与撤离通知', sender: '环境监测系统', recipients: ['全体井下人员', '安全员-赵强'], timestamp: '2026-06-09 13:45:00', read: false, hasVoucher: true, voucherUrl: '/vouchers/MSG006.pdf', level: 'critical' },
+  { id: 'MSG007', type: 'report', title: '5月综合利润报表', content: '5月利润191.98万元，利润率39.6%，已推送管理层', sender: '财务分析系统', recipients: ['管理层'], timestamp: '2026-06-01 09:00:00', read: true, hasVoucher: true, voucherUrl: '/vouchers/MSG007.pdf', level: 'info' },
+  { id: 'MSG008', type: 'access', title: '准入拒绝通知', content: '刘伟因瓦斯防爆安全培训未通过，拒绝准入下井', sender: '安全准入系统', recipients: ['刘伟', '安全员-赵强'], timestamp: '2026-06-09 06:35:00', read: true, hasVoucher: false, level: 'warning' },
+  { id: 'MSG009', type: 'fault', title: '维修工单完成通知', content: '采煤机-02截割电机过热保护维修已完成，恢复正常运行', sender: '设备管理系统', recipients: ['设备管理员-陈刚', '调度员-李明'], timestamp: '2026-06-08 17:30:00', read: true, hasVoucher: true, voucherUrl: '/vouchers/MSG009.pdf', level: 'info' },
+  { id: 'MSG010', type: 'alarm', title: '井下超时作业提醒', content: '赵明远井下作业已超过8小时，请安排换班', sender: '人员定位系统', recipients: ['调度员-李明'], timestamp: '2026-06-09 09:15:00', read: false, hasVoucher: false, level: 'warning' },
+];

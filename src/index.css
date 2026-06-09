@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'PingFang SC', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #E0E8F0;
+  background-color: #0A1628;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #243352 #0A1628;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #0A1628;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #243352;
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #2d4166;
+}
+
+@layer components {
+  .mine-card {
+    @apply bg-mine-card border border-mine-border rounded-lg p-4;
+  }
+  .mine-card-glow {
+    @apply bg-mine-card border border-mine-border rounded-lg p-4 animate-glow;
+  }
+  .stat-value {
+    @apply font-din text-2xl font-bold tracking-wider;
+  }
+  .stat-label {
+    @apply text-mine-muted text-xs;
+  }
+  .mine-btn-primary {
+    @apply bg-gradient-to-r from-mine-cyan to-mine-cyanDark text-mine-bg font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity;
+  }
+  .mine-btn-outline {
+    @apply border border-mine-cyan text-mine-cyan px-4 py-2 rounded-lg hover:bg-mine-cyan/10 transition-colors;
+  }
+  .mine-btn-danger {
+    @apply bg-mine-red/20 border border-mine-red text-mine-red px-4 py-2 rounded-lg hover:bg-mine-red/30 transition-colors;
+  }
+  .mine-btn-warning {
+    @apply bg-mine-amber/20 border border-mine-amber text-mine-amber px-4 py-2 rounded-lg hover:bg-mine-amber/30 transition-colors;
+  }
+}

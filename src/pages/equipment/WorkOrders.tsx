@@ -1,0 +1,135 @@
+import { useState } from 'react';
+import { Wrench, Clock, CheckCircle, AlertCircle, Package, Calendar, UserCheck } from 'lucide-react';
+import { maintenanceOrders } from '@/data/equipment';
+
+type FilterKey = 'all' | 'pending' | 'in_progress' | 'completed';
+
+const filters: { key: FilterKey; label: string }[] = [
+  { key: 'all', label: '全部' },
+  { key: 'pending', label: '待处理' },
+  { key: 'in_progress', label: '进行中' },
+  { key: 'completed', label: '已完成' },
+];
+
+const statusCfg: Record<string, { label: string; cls: string; dot: string }> = {
+  pending: { label: '待处理', cls: 'text-mine-amber', dot: 'bg-mine-amber' },
+  in_progress: { label: '进行中', cls: 'text-mine-cyan', dot: 'bg-mine-cyan' },
+  completed: { label: '已完成', cls: 'text-mine-green', dot: 'bg-mine-green' },
+};
+
+const typeCfg: Record<string, { label: string; cls: string }> = {
+  emergency: { label: '紧急', cls: 'bg-mine-red/20 text-mine-red' },
+  corrective: { label: '纠正性', cls: 'bg-mine-amber/20 text-mine-amber' },
+  preventive: { label: '预防性', cls: 'bg-mine-blue/20 text-mine-blue' },
+};
+
+const priorityCfg: Record<string, { label: string; cls: string }> = {
+  high: { label: '高', cls: 'bg-mine-red/20 text-mine-red' },
+  medium: { label: '中', cls: 'bg-mine-amber/20 text-mine-amber' },
+  low: { label: '低', cls: 'bg-mine-green/20 text-mine-green' },
+};
+
+export default function WorkOrders() {
+  const [filter, setFilter] = useState<FilterKey>('all');
+
+  const filtered = filter === 'all' ? maintenanceOrders : maintenanceOrders.filter((o) => o.status === filter);
+
+  const total = maintenanceOrders.length;
+  const pending = maintenanceOrders.filter((o) => o.status === 'pending').length;
+  const inProgress = maintenanceOrders.filter((o) => o.status === 'in_progress').length;
+  const completed = maintenanceOrders.filter((o) => o.status === 'completed').length;
+
+  return (
+    <div className="space-y-4 animate-slide-up">
+      <div className="grid grid-cols-4 gap-4">
+        {[
+          { icon: Wrench, label: '总工单', value: total, color: 'text-mine-cyan' },
+          { icon: Clock, label: '待处理', value: pending, color: 'text-mine-amber' },
+          { icon: AlertCircle, label: '进行中', value: inProgress, color: 'text-mine-cyan' },
+          { icon: CheckCircle, label: '已完成', value: completed, color: 'text-mine-green' },
+        ].map((s) => (
+          <div key={s.label} className="mine-card flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-mine-bg ${s.color}`}>
+              <s.icon size={20} />
+            </div>
+            <div>
+              <div className="stat-label">{s.label}</div>
+              <div className={`stat-value ${s.color}`}>{s.value}<span className="text-sm text-mine-muted ml-1">单</span></div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-2">
+        {filters.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className={`px-4 py-1.5 rounded-lg text-sm transition-colors ${filter === f.key ? 'bg-mine-cyan/20 text-mine-cyan border border-mine-cyan/40' : 'bg-mine-card text-mine-muted border border-mine-border hover:text-mine-text'}`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {filtered.map((order) => {
+          const sc = statusCfg[order.status];
+          const tc = typeCfg[order.type];
+          const pc = priorityCfg[order.priority];
+          return (
+            <div key={order.id} className="mine-card space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-mine-text font-medium">{order.equipmentName}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded ${tc.cls}`}>{tc.label}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded ${pc.cls}`}>{pc.label}</span>
+                </div>
+                <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded ${sc.cls}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />{sc.label}
+                </span>
+              </div>
+
+              <p className="text-sm text-mine-muted">{order.predictedFault}</p>
+
+              <div className="flex items-center gap-4 text-xs text-mine-muted">
+                <span className="flex items-center gap-1"><Calendar size={12} />计划: {order.scheduledAt}</span>
+                <span className="flex items-center gap-1"><Clock size={12} />创建: {order.createdAt}</span>
+              </div>
+
+              <div>
+                <div className="flex items-center gap-1 text-xs text-mine-muted mb-1.5">
+                  <Package size={12} />推荐备件
+                </div>
+                <div className="space-y-1">
+                  {order.recommendedParts.map((part) => (
+                    <div key={part.partNumber} className="flex items-center justify-between bg-mine-bg rounded px-2.5 py-1.5 text-xs">
+                      <span className="text-mine-text">{part.name}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-mine-muted font-din">{part.partNumber}</span>
+                        <span className={part.stock <= 2 ? 'text-mine-red' : 'text-mine-green'}>库存: {part.stock}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-1">
+                {order.status === 'pending' && (
+                  <button className="mine-btn-primary text-xs px-3 py-1.5 flex items-center gap-1">
+                    <UserCheck size={12} />接单
+                  </button>
+                )}
+                {order.status === 'in_progress' && (
+                  <button className="mine-btn-primary text-xs px-3 py-1.5 flex items-center gap-1">
+                    <CheckCircle size={12} />完成
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
