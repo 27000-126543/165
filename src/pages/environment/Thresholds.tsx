@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { Save, Check } from 'lucide-react';
-import { monitorPoints } from '@/data/environment';
+import { useAppStore } from '@/store';
 
 export default function Thresholds() {
+  const monitorPoints = useAppStore((s) => s.monitorPoints);
+  const saveThresholds = useAppStore((s) => s.saveThresholds);
+
   const [thresholds, setThresholds] = useState(() =>
     monitorPoints.map((p) => ({
       id: p.id,
@@ -17,6 +20,13 @@ export default function Thresholds() {
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
+    saveThresholds(
+      thresholds.map((t) => ({
+        id: t.id,
+        gasThreshold: t.gasThreshold,
+        dustThreshold: t.dustThreshold,
+      }))
+    );
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };

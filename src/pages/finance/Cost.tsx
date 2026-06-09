@@ -1,8 +1,9 @@
 import { DollarSign, Wrench, Zap, TrendingDown } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
-import { financeReports } from '@/data/finance';
+import { useAppStore } from '@/store';
 
 export default function Cost() {
+  const financeReports = useAppStore(s => s.financeReports);
   const report = financeReports[0];
   const totalMaintenance = report.maintenanceCosts.reduce((s, c) => s + c.amount, 0);
   const totalEnergy = report.energyConsumption.reduce((s, e) => s + e.electricity + e.water + e.fuel, 0);

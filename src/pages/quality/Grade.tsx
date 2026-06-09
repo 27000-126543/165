@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Award, TrendingUp } from 'lucide-react';
-import { oreSamples } from '@/data/quality';
+import { useAppStore } from '@/store';
 
 const gradeStyle: Record<string, { label: string; color: string; border: string; bg: string; glow: string }> = {
   premium: { label: '特优', color: 'text-mine-cyan', border: 'border-mine-cyan/50', bg: 'bg-mine-cyan/10', glow: 'shadow-[0_0_30px_rgba(0,240,255,0.3)]' },
@@ -18,6 +18,7 @@ const metrics = [
 ] as const;
 
 export default function Grade() {
+  const oreSamples = useAppStore(s => s.oreSamples);
   const [selectedId, setSelectedId] = useState(oreSamples[0].id);
   const sample = oreSamples.find((s) => s.id === selectedId) || oreSamples[0];
   const style = gradeStyle[sample.grade ?? 'low'];

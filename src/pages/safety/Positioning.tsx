@@ -1,7 +1,6 @@
 import { MapPin, Clock, AlertTriangle } from 'lucide-react'
 import MineMap from '@/components/MineMap'
-import { miners, dangerZones } from '@/data/miners'
-import { vehicles } from '@/data/production'
+import { useAppStore } from '@/store'
 
 const levelLabel: Record<string, string> = {
   critical: '高危',
@@ -16,6 +15,9 @@ const levelColor: Record<string, string> = {
 }
 
 export default function Positioning() {
+  const miners = useAppStore(s => s.miners)
+  const dangerZones = useAppStore(s => s.dangerZones)
+  const vehicles = useAppStore(s => s.vehicles)
   const undergroundMiners = miners.filter(m => m.isUnderground && m.currentPosition)
 
   const minerPositions = undergroundMiners.map(m => ({

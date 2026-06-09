@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Cpu, Activity, AlertTriangle, XCircle, Wrench, Search, Eye } from 'lucide-react';
-import { equipmentList } from '@/data/equipment';
+import { useAppStore } from '@/store';
 
 type StatusFilter = 'all' | 'running' | 'idle' | 'warning' | 'fault' | 'maintenance';
 
@@ -30,6 +30,7 @@ function healthTextColor(score: number) {
 }
 
 export default function EquipmentList() {
+  const equipmentList = useAppStore(s => s.equipmentList);
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [search, setSearch] = useState('');
 

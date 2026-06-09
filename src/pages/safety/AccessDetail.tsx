@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import ReactECharts from 'echarts-for-react'
 import { ArrowLeft, User, Heart, BookOpen, CheckCircle, XCircle } from 'lucide-react'
-import { miners } from '@/data/miners'
+import { useAppStore } from '@/store'
 
 const statusDisplay = {
   approved: { label: '通过', color: 'text-mine-green', bg: 'bg-mine-green/20', border: 'border-mine-green/30' },
@@ -16,6 +16,7 @@ const rejectReasons: Record<string, string> = {
 }
 
 export default function AccessDetail() {
+  const miners = useAppStore(s => s.miners)
   const { id } = useParams()
   const navigate = useNavigate()
   const miner = miners.find(m => m.id === id)

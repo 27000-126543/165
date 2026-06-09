@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Wrench, Clock, CheckCircle, AlertCircle, Package, Calendar, UserCheck } from 'lucide-react';
-import { maintenanceOrders } from '@/data/equipment';
+import { useState, useMemo } from 'react';
+import { Wrench, Clock, CheckCircle, AlertCircle, Package, Calendar, UserCheck, History } from 'lucide-react';
+import { useAppStore } from '@/store';
 
 type FilterKey = 'all' | 'pending' | 'in_progress' | 'completed';
 
@@ -31,6 +31,11 @@ const priorityCfg: Record<string, { label: string; cls: string }> = {
 
 export default function WorkOrders() {
   const [filter, setFilter] = useState<FilterKey>('all');
+
+  const maintenanceOrders = useAppStore((s) => s.maintenanceOrders);
+  const updateWorkOrderStatus = useAppStore((s) => s.updateWorkOrderStatus);
+  const allAuditLogs = useAppStore((s) => s.auditLogs);
+  const auditLogs = useMemo(() => allAuditLogs.filter((l) => l.targetType === 'workorder').slice(0, 20), [allAuditLogs]);
 
   const filtered = filter === 'all' ? maintenanceOrders : maintenanceOrders.filter((o) => o.status === filter);
 
@@ -77,6 +82,7 @@ export default function WorkOrders() {
           const sc = statusCfg[order.status];
           const tc = typeCfg[order.type];
           const pc = priorityCfg[order.priority];
+          const orderLogs = auditLogs.filter((l) => l.targetId === order.id);
           return (
             <div key={order.id} className="mine-card space-y-3">
               <div className="flex items-center justify-between">
@@ -114,14 +120,37 @@ export default function WorkOrders() {
                 </div>
               </div>
 
+              {orderLogs.length > 0 && (
+                <div className="border-t border-mine-border pt-2">
+                  <div className="flex items-center gap-1 text-xs text-mine-muted mb-1.5">
+                    <History size={11} />操作记录
+                  </div>
+                  <div className="space-y-1 max-h-24 overflow-y-auto">
+                    {orderLogs.map((log) => (
+                      <div key={log.id} className="text-xs text-mine-muted flex items-center gap-2">
+                        <span className="text-mine-cyan">{log.operator}</span>
+                        <span>{log.action}</span>
+                        <span className="font-din ml-auto shrink-0">{log.timestamp.slice(11)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-end gap-2 pt-1">
                 {order.status === 'pending' && (
-                  <button className="mine-btn-primary text-xs px-3 py-1.5 flex items-center gap-1">
+                  <button
+                    onClick={() => updateWorkOrderStatus(order.id, 'in_progress')}
+                    className="mine-btn-primary text-xs px-3 py-1.5 flex items-center gap-1"
+                  >
                     <UserCheck size={12} />接单
                   </button>
                 )}
                 {order.status === 'in_progress' && (
-                  <button className="mine-btn-primary text-xs px-3 py-1.5 flex items-center gap-1">
+                  <button
+                    onClick={() => updateWorkOrderStatus(order.id, 'completed')}
+                    className="mine-btn-primary text-xs px-3 py-1.5 flex items-center gap-1"
+                  >
                     <CheckCircle size={12} />完成
                   </button>
                 )}

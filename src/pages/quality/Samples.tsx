@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FlaskConical, Upload, Filter } from 'lucide-react';
-import { oreSamples } from '@/data/quality';
+import { useAppStore } from '@/store';
 import type { OreSample } from '@/types';
 
 const gradeConfig: Record<string, { label: string; color: string; bg: string }> = {
@@ -30,6 +30,7 @@ interface NewSample {
 }
 
 export default function Samples() {
+  const oreSamples = useAppStore(s => s.oreSamples);
   const [filter, setFilter] = useState('all');
   const [samples, setSamples] = useState(oreSamples);
   const [showForm, setShowForm] = useState(false);

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { Activity, Target, Layers, Gem } from 'lucide-react';
-import { miningFaces } from '@/data/production';
+import { useAppStore } from '@/store';
 
 const statusMap: Record<string, { label: string; cls: string }> = {
   active: { label: '运行中', cls: 'bg-mine-green/20 text-mine-green' },
@@ -12,6 +12,7 @@ const statusMap: Record<string, { label: string; cls: string }> = {
 const gradeColor = (g: number) => (g >= 0.8 ? 'text-mine-green' : g >= 0.6 ? 'text-mine-amber' : 'text-mine-red');
 
 export default function Monitor() {
+  const miningFaces = useAppStore(s => s.miningFaces);
   const totalOutput = miningFaces.reduce((s, f) => s + f.currentOutput, 0);
   const completionRate = Math.round(
     (miningFaces.reduce((s, f) => s + f.currentOutput, 0) / miningFaces.reduce((s, f) => s + f.dailyTarget, 0)) * 100

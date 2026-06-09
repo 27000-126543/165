@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Bell, MapPin, Clock, Radio, CheckCircle } from 'lucide-react'
-import { alarmRecords } from '@/data/miners'
+import { useAppStore } from '@/store'
 
 type TypeFilter = 'all' | 'danger_zone' | 'over_time' | 'distress'
 type LevelFilter = 'all' | 'warning' | 'critical' | 'emergency'
@@ -32,6 +32,7 @@ const levelTag: Record<string, { label: string; className: string }> = {
 }
 
 export default function Alarms() {
+  const alarmRecords = useAppStore(s => s.alarmRecords)
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [levelFilter, setLevelFilter] = useState<LevelFilter>('all')
 

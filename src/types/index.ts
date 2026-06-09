@@ -132,6 +132,22 @@ export interface EnvDataPoint {
   dust: number;
 }
 
+export interface AuditLog {
+  id: string;
+  action: string;
+  targetType: 'task' | 'inspection' | 'workorder' | 'emergency' | 'report' | 'threshold' | 'message';
+  targetId: string;
+  operator: string;
+  timestamp: string;
+  detail: string;
+  route?: string;
+}
+
+export interface DisposalStep {
+  name: string;
+  done: boolean;
+}
+
 export interface EmergencyEvent {
   id: string;
   type: 'gas_over' | 'dust_over' | 'collapse' | 'flood';
@@ -141,8 +157,13 @@ export interface EmergencyEvent {
   evacuationZones: string[];
   broadcastContent: string;
   timestamp: string;
-  status: 'active' | 'resolved';
+  status: 'active' | 'disposal' | 'resolved';
   reportUrl?: string;
+  evacuationCount?: number;
+  notifiedTeams?: string[];
+  disposalSteps?: DisposalStep[];
+  closedAt?: string;
+  closedBy?: string;
 }
 
 export interface OreSample {
@@ -182,6 +203,10 @@ export interface FinanceReport {
   totalCost: number;
   profit: number;
   profitMargin: number;
+  approvalStatus: 'draft' | 'pending' | 'approved' | 'rejected';
+  rejectReason?: string;
+  approvedBy?: string;
+  approvedAt?: string;
 }
 
 export interface TeamOutput {
@@ -204,7 +229,7 @@ export interface EnergyData {
 
 export interface Message {
   id: string;
-  type: 'access' | 'alarm' | 'fault' | 'quality' | 'dispatch' | 'emergency' | 'report';
+  type: 'access' | 'alarm' | 'fault' | 'quality' | 'dispatch' | 'emergency' | 'report' | 'approval';
   title: string;
   content: string;
   sender: string;
@@ -214,6 +239,10 @@ export interface Message {
   hasVoucher: boolean;
   voucherUrl?: string;
   level: 'info' | 'warning' | 'error' | 'critical';
+  confirmedBy?: string;
+  confirmedAt?: string;
+  relatedRoute?: string;
+  relatedId?: string;
 }
 
 export interface DangerZone {

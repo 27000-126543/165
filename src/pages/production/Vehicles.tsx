@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Truck, MapPin, User, Weight, Route, ArrowRight } from 'lucide-react';
-import { vehicles } from '@/data/production';
+import { useAppStore } from '@/store';
 
 const statusCfg: Record<string, { label: string; cls: string; dot: string }> = {
   running: { label: '运行中', cls: 'text-mine-green', dot: 'bg-mine-green' },
@@ -15,6 +15,7 @@ function polyline(points: { x: number; y: number }[]) {
 }
 
 export default function Vehicles() {
+  const vehicles = useAppStore(s => s.vehicles);
   const [selected, setSelected] = useState<string | null>(null);
 
   const running = vehicles.filter((v) => v.status === 'running').length;

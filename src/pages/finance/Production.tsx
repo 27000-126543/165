@@ -1,8 +1,9 @@
 import { BarChart3, TrendingUp, Target, Trophy } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
-import { financeReports } from '@/data/finance';
+import { useAppStore } from '@/store';
 
 export default function Production() {
+  const financeReports = useAppStore(s => s.financeReports);
   const report = financeReports[0];
   const totalOutput = report.teamOutputs.reduce((s, t) => s + t.output, 0);
   const totalTarget = report.teamOutputs.reduce((s, t) => s + t.target, 0);

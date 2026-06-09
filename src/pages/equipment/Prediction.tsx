@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { Shield, Clock, Activity, Thermometer, AlertTriangle, ChevronDown } from 'lucide-react';
-import { equipmentList, inspectionRecords } from '@/data/equipment';
+import { useAppStore } from '@/store';
 
 function generateForecast(health: number) {
   const probs: { day: number; prob: number }[] = [];
@@ -21,6 +21,8 @@ function getRiskLevel(hs: number) {
 }
 
 export default function Prediction() {
+  const equipmentList = useAppStore(s => s.equipmentList);
+  const inspectionRecords = useAppStore(s => s.inspectionRecords);
   const [selectedId, setSelectedId] = useState(equipmentList[0].id);
   const eq = equipmentList.find((e) => e.id === selectedId)!;
   const eqRecords = inspectionRecords.filter((r) => r.equipmentId === selectedId);

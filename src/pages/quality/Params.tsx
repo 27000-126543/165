@@ -1,5 +1,5 @@
 import { Sliders, ArrowRight, Clock, User } from 'lucide-react';
-import { oreSamples, processAdjustments } from '@/data/quality';
+import { useAppStore } from '@/store';
 
 const paramLabels: Record<string, { label: string; unit: string }> = {
   crushSize: { label: '破碎粒度', unit: 'mm' },
@@ -8,6 +8,8 @@ const paramLabels: Record<string, { label: string; unit: string }> = {
 };
 
 export default function Params() {
+  const oreSamples = useAppStore(s => s.oreSamples);
+  const processAdjustments = useAppStore(s => s.processAdjustments);
   return (
     <div className="space-y-6">
       <h2 className="text-mine-text text-lg font-medium flex items-center gap-2">

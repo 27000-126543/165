@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import StatusBadge from '@/components/StatusBadge'
-import { miners } from '@/data/miners'
+import { useAppStore } from '@/store'
 
 type FilterKey = 'all' | 'approved' | 'rejected' | 'pending'
 
@@ -14,6 +14,7 @@ const filterTabs: { key: FilterKey; label: string }[] = [
 ]
 
 export default function AccessList() {
+  const miners = useAppStore(s => s.miners)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<FilterKey>('all')
 

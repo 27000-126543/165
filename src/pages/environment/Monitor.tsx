@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Activity, CheckCircle, AlertTriangle, AlertOctagon } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
-import { monitorPoints } from '@/data/environment';
+import { useAppStore } from '@/store';
 
 const statusConfig = {
   normal: { label: '正常', color: 'text-mine-green', bg: 'bg-mine-green/10', border: 'border-mine-green/30' },
@@ -10,6 +10,7 @@ const statusConfig = {
 };
 
 export default function Monitor() {
+  const monitorPoints = useAppStore(s => s.monitorPoints);
   const [selectedPoints, setSelectedPoints] = useState<string[]>(
     monitorPoints.map((p) => p.id)
   );

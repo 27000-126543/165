@@ -1,7 +1,7 @@
 import type { FinanceReport, Message } from '@/types';
 
 export const financeReports: FinanceReport[] = [
-  { id: 'FR001', period: '2026年5月', teamOutputs: [{ team: '采掘一班', output: 28500, target: 30000 }, { team: '采掘二班', output: 22300, target: 25000 }, { team: '运输班', output: 45200, target: 45000 }], maintenanceCosts: [{ category: '配件采购', amount: 156000 }, { category: '人工维修', amount: 89000 }, { category: '外包维修', amount: 45000 }, { category: '润滑油料', amount: 23000 }], energyConsumption: [{ month: '1月', electricity: 280000, water: 15000, fuel: 45000 }, { month: '2月', electricity: 265000, water: 14200, fuel: 42000 }, { month: '3月', electricity: 290000, water: 15800, fuel: 48000 }, { month: '4月', electricity: 310000, water: 16500, fuel: 51000 }, { month: '5月', electricity: 295000, water: 15200, fuel: 47000 }], totalRevenue: 4850000, totalCost: 2930200, profit: 1919800, profitMargin: 39.6 },
+  { id: 'FR001', period: '2026年5月', teamOutputs: [{ team: '采掘一班', output: 28500, target: 30000 }, { team: '采掘二班', output: 22300, target: 25000 }, { team: '运输班', output: 45200, target: 45000 }], maintenanceCosts: [{ category: '配件采购', amount: 156000 }, { category: '人工维修', amount: 89000 }, { category: '外包维修', amount: 45000 }, { category: '润滑油料', amount: 23000 }], energyConsumption: [{ month: '1月', electricity: 280000, water: 15000, fuel: 45000 }, { month: '2月', electricity: 265000, water: 14200, fuel: 42000 }, { month: '3月', electricity: 290000, water: 15800, fuel: 48000 }, { month: '4月', electricity: 310000, water: 16500, fuel: 51000 }, { month: '5月', electricity: 295000, water: 15200, fuel: 47000 }], totalRevenue: 4850000, totalCost: 2930200, profit: 1919800, profitMargin: 39.6, approvalStatus: 'draft' },
 ];
 
 export const messages: Message[] = [

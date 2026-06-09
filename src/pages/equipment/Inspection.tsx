@@ -1,19 +1,31 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
-import { ClipboardCheck, AlertTriangle, Clock, Thermometer, Activity } from 'lucide-react';
-import { equipmentList, inspectionRecords } from '@/data/equipment';
+import { ClipboardCheck, AlertTriangle, Clock, Thermometer, Activity, History } from 'lucide-react';
+import { useAppStore } from '@/store';
 
 export default function Inspection() {
-  const [selectedEq, setSelectedEq] = useState(equipmentList[0].id);
+  const [selectedEq, setSelectedEq] = useState('');
   const [vibration, setVibration] = useState('');
   const [temperature, setTemperature] = useState('');
   const [notes, setNotes] = useState('');
 
-  const todayCount = inspectionRecords.filter((r) => r.timestamp.startsWith('2026-06-09')).length;
+  const equipmentList = useAppStore((s) => s.equipmentList);
+  const inspectionRecords = useAppStore((s) => s.inspectionRecords);
+  const submitInspection = useAppStore((s) => s.submitInspection);
+  const allAuditLogs = useAppStore((s) => s.auditLogs);
+  const inspectionLogs = useMemo(() => allAuditLogs.filter((l) => l.targetType === 'inspection').slice(0, 10), [allAuditLogs]);
+
+  const effectiveEqId = selectedEq || (equipmentList.length > 0 ? equipmentList[0].id : '');
+  if (!selectedEq && equipmentList.length > 0) {
+    setSelectedEq(equipmentList[0].id);
+  }
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayCount = inspectionRecords.filter((r) => r.timestamp.startsWith(todayStr)).length;
   const abnormalCount = inspectionRecords.filter((r) => r.vibration > 5 || r.temperature > 85).length;
   const pendingCount = equipmentList.filter((e) => e.status === 'running' || e.status === 'warning').length;
 
-  const eqRecords = inspectionRecords.filter((r) => r.equipmentId === selectedEq);
+  const eqRecords = inspectionRecords.filter((r) => r.equipmentId === effectiveEqId);
   const vibData = eqRecords.map((r) => ({ time: r.timestamp.slice(5, 16), value: r.vibration }));
   const tempData = eqRecords.map((r) => ({ time: r.timestamp.slice(5, 16), value: r.temperature }));
 
@@ -36,6 +48,16 @@ export default function Inspection() {
       },
     ],
   });
+
+  const handleSubmit = () => {
+    const vib = Number(vibration);
+    const temp = Number(temperature);
+    if (!effectiveEqId || isNaN(vib) || isNaN(temp)) return;
+    submitInspection(effectiveEqId, vib, temp, notes);
+    setVibration('');
+    setTemperature('');
+    setNotes('');
+  };
 
   return (
     <div className="space-y-4 animate-slide-up">
@@ -63,7 +85,7 @@ export default function Inspection() {
           <div>
             <label className="block text-mine-muted text-xs mb-1">选择设备</label>
             <select
-              value={selectedEq}
+              value={effectiveEqId}
               onChange={(e) => setSelectedEq(e.target.value)}
               className="w-full bg-mine-bg border border-mine-border rounded-lg px-3 py-2 text-sm text-mine-text focus:outline-none focus:border-mine-cyan/50"
             >
@@ -110,7 +132,7 @@ export default function Inspection() {
               className="w-full bg-mine-bg border border-mine-border rounded-lg px-3 py-2 text-sm text-mine-text placeholder:text-mine-muted focus:outline-none focus:border-mine-cyan/50 resize-none"
             />
           </div>
-          <button className="mine-btn-primary w-full">提交巡检</button>
+          <button onClick={handleSubmit} className="mine-btn-primary w-full">提交巡检</button>
         </div>
 
         <div className="col-span-3 mine-card overflow-auto max-h-[360px]">
@@ -141,14 +163,32 @@ export default function Inspection() {
 
       <div className="grid grid-cols-2 gap-4">
         <div className="mine-card">
-          <h3 className="text-mine-text font-medium mb-1">振动趋势 - {equipmentList.find((e) => e.id === selectedEq)?.name}</h3>
+          <h3 className="text-mine-text font-medium mb-1">振动趋势 - {equipmentList.find((e) => e.id === effectiveEqId)?.name}</h3>
           <ReactECharts option={makeLineOption(vibData, '振动(mm/s)', 'rgb(0,240,255)', 5)} style={{ height: 200 }} />
         </div>
         <div className="mine-card">
-          <h3 className="text-mine-text font-medium mb-1">温度趋势 - {equipmentList.find((e) => e.id === selectedEq)?.name}</h3>
+          <h3 className="text-mine-text font-medium mb-1">温度趋势 - {equipmentList.find((e) => e.id === effectiveEqId)?.name}</h3>
           <ReactECharts option={makeLineOption(tempData, '温度(°C)', 'rgb(255,184,0)', 85)} style={{ height: 200 }} />
         </div>
       </div>
+
+      {inspectionLogs.length > 0 && (
+        <div className="mine-card">
+          <div className="flex items-center gap-2 mb-3">
+            <History className="w-4 h-4 text-mine-cyan" />
+            <span className="text-mine-text font-medium text-sm">巡检操作留痕</span>
+          </div>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {inspectionLogs.map((log) => (
+              <div key={log.id} className="flex items-center gap-3 text-sm">
+                <span className="text-mine-cyan shrink-0">{log.operator}</span>
+                <span className="text-mine-text">{log.detail}</span>
+                <span className="text-mine-muted font-din text-xs ml-auto shrink-0">{log.timestamp}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
