@@ -496,6 +496,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       voucherUrl: `/vouchers/EM-${eventId}-BROADCAST.pdf`,
       relatedRoute: '/environment/emergency',
       relatedId: eventId,
+      sourceOperator: get().currentUser.name,
+      sourceTimestamp: now(),
     });
   },
   updateEmergencyDisposal: (eventId, data) => {
@@ -575,6 +577,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       voucherUrl: reportUrl,
       relatedRoute: '/environment/emergency',
       relatedId: eventId,
+      sourceOperator: get().currentUser.name,
+      sourceTimestamp: ts,
     });
   },
   createDrillPlan: (eventId) => {
@@ -611,6 +615,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       hasVoucher: false,
       relatedRoute: '/environment/emergency',
       relatedId: eventId,
+      sourceOperator: get().currentUser.name,
+      sourceTimestamp: now(),
     });
   },
 

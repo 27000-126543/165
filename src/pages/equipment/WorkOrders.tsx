@@ -51,7 +51,21 @@ export default function WorkOrders() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `工单操作留痕_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `工单操作留痕_全部_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportOrderLogs = (orderId: string) => {
+    const order = maintenanceOrders.find((o) => o.id === orderId);
+    const logs = auditLogs.filter((l) => l.targetId === orderId);
+    const header = '操作人,操作,详情,时间\n';
+    const rows = logs.map((l) => `"${l.operator}","${l.action}","${l.detail}","${l.timestamp}"`).join('\n');
+    const blob = new Blob(['\uFEFF' + header + rows], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `工单操作留痕_${order?.equipmentName || orderId}_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -141,8 +155,16 @@ export default function WorkOrders() {
 
               {orderLogs.length > 0 && (
                 <div className="border-t border-mine-border pt-2">
-                  <div className="flex items-center gap-1 text-xs text-mine-muted mb-1.5">
-                    <History size={11} />操作记录
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-1 text-xs text-mine-muted">
+                      <History size={11} />操作记录
+                    </div>
+                    <button
+                      onClick={() => handleExportOrderLogs(order.id)}
+                      className="text-mine-cyan text-xs hover:underline flex items-center gap-0.5"
+                    >
+                      <Download size={10} />导出
+                    </button>
                   </div>
                   <div className="space-y-1 max-h-24 overflow-y-auto">
                     {orderLogs.map((log) => (
@@ -188,7 +210,7 @@ export default function WorkOrders() {
               <span className="text-mine-muted text-xs">({auditLogs.length}条)</span>
             </div>
             <button onClick={handleExportLogs} className="mine-btn-outline text-xs py-1 flex items-center gap-1">
-              <Download size={12} />导出CSV
+              <Download size={12} />导出全部CSV
             </button>
           </div>
           <div className="space-y-2 max-h-60 overflow-y-auto">

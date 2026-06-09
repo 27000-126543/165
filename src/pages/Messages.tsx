@@ -292,7 +292,7 @@ export default function Messages() {
                       </div>
                       {msg.sourceOperator && msg.sourceTimestamp && (
                         <div className="flex items-center gap-2 text-xs text-mine-muted">
-                          <ExternalLink size={12} /> 来源操作人: {msg.sourceOperator} | 操作时间: {msg.sourceTimestamp}
+                          <ExternalLink size={12} /> 触发来源: {msg.sourceOperator} | 触发时间: {msg.sourceTimestamp}
                         </div>
                       )}
                       {msg.confirmedBy && (

@@ -325,8 +325,9 @@ export default function Emergency() {
           <div className="grid grid-cols-2 gap-4">
             {resolvedEvents.map((event) => {
               const steps = event.disposalSteps || [];
+              const isHighlighted = highlightId === event.id;
               return (
-                <div key={event.id} className="mine-card space-y-3 opacity-80">
+                <div key={event.id} ref={isHighlighted ? highlightRef : undefined} className={`mine-card space-y-3 opacity-80 transition-all ${isHighlighted ? 'ring-2 ring-mine-cyan/50 opacity-100' : ''}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-mine-muted text-xs">{typeLabels[event.type]}</span>
