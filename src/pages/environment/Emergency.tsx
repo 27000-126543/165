@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Radio, AlertTriangle, FileText, X, MapPin, Volume2, Clock, Users, CheckCircle, ChevronDown, ChevronUp, Download, ShieldCheck } from 'lucide-react';
+import { Radio, AlertTriangle, FileText, X, MapPin, Volume2, Clock, Users, CheckCircle, ChevronDown, ChevronUp, Download, ShieldCheck, Zap } from 'lucide-react';
 import { useAppStore } from '@/store';
 
 const levelConfig = {
@@ -27,6 +27,7 @@ export default function Emergency() {
   const updateEmergencyDisposal = useAppStore((s) => s.updateEmergencyDisposal);
   const toggleDisposalStep = useAppStore((s) => s.toggleDisposalStep);
   const closeEmergency = useAppStore((s) => s.closeEmergency);
+  const createDrillPlan = useAppStore((s) => s.createDrillPlan);
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [broadcastSent, setBroadcastSent] = useState(false);
@@ -34,6 +35,7 @@ export default function Emergency() {
   const [evacInput, setEvacInput] = useState<Record<string, string>>({});
   const [teamInput, setTeamInput] = useState<Record<string, string>>({});
   const [closeConfirmId, setCloseConfirmId] = useState<string | null>(null);
+  const [drillSuccessId, setDrillSuccessId] = useState<string | null>(null);
 
   const activeEvents = emergencyEvents.filter((e) => e.status === 'active' || e.status === 'disposal');
   const resolvedEvents = emergencyEvents.filter((e) => e.status === 'resolved');
@@ -69,6 +71,12 @@ export default function Emergency() {
     setExpandedId(null);
   };
 
+  const handleCreateDrill = (eventId: string) => {
+    createDrillPlan(eventId);
+    setDrillSuccessId(eventId);
+    setTimeout(() => setDrillSuccessId(null), 3000);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -91,6 +99,12 @@ export default function Emergency() {
           {activeEvents.length === 0
             ? '当前无活跃应急事件，无法触发应急广播'
             : '应急广播已触发，所有井下人员请立即注意撤离指令！'}
+        </div>
+      )}
+
+      {drillSuccessId && (
+        <div className="border text-sm px-4 py-3 rounded-lg animate-slide-up bg-mine-green/10 border-mine-green/30 text-mine-green">
+          演练计划已生成！基于事件 {drillSuccessId} 的演练计划已创建并通知相关人员。
         </div>
       )}
 
@@ -286,34 +300,96 @@ export default function Emergency() {
           <div className="mine-card text-mine-muted text-center py-6">暂无已结束事件</div>
         ) : (
           <div className="grid grid-cols-2 gap-4">
-            {resolvedEvents.map((event) => (
-              <div key={event.id} className="mine-card space-y-2 opacity-80">
-                <div className="flex items-center justify-between">
-                  <span className="text-mine-muted text-xs">{typeLabels[event.type]}</span>
-                  <span className="text-mine-muted text-xs">{event.timestamp}</span>
+            {resolvedEvents.map((event) => {
+              const steps = event.disposalSteps || [];
+              return (
+                <div key={event.id} className="mine-card space-y-3 opacity-80">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-mine-muted text-xs">{typeLabels[event.type]}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded ${statusLabels.resolved.cls}`}>
+                        {statusLabels.resolved.label}
+                      </span>
+                    </div>
+                    <span className="text-mine-muted text-xs">{event.timestamp}</span>
+                  </div>
+                  <p className="text-mine-text text-sm">{event.description}</p>
+
+                  {event.closedBy && (
+                    <div className="text-xs text-mine-muted">
+                      关闭人: {event.closedBy} | 关闭时间: {event.closedAt}
+                    </div>
+                  )}
+
+                  <div className="border-t border-mine-border pt-2 space-y-2">
+                    <div className="text-mine-text text-xs font-medium flex items-center gap-1 mb-1">
+                      <ShieldCheck size={12} className="text-mine-green" /> 复盘详情
+                    </div>
+
+                    {event.disposalDuration && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <Clock size={12} className="text-mine-cyan" />
+                        <span className="text-mine-muted">处置耗时:</span>
+                        <span className="text-mine-text">{event.disposalDuration}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 text-xs">
+                      <Users size={12} className="text-mine-cyan" />
+                      <span className="text-mine-muted">疏散人数:</span>
+                      <span className="text-mine-text">{event.evacuationCount ?? 0}人</span>
+                    </div>
+
+                    {event.notifiedTeams && event.notifiedTeams.length > 0 && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <Volume2 size={12} className="text-mine-cyan" />
+                        <span className="text-mine-muted">已通知班组:</span>
+                        <span className="text-mine-text">{event.notifiedTeams.join('、')}</span>
+                      </div>
+                    )}
+
+                    {steps.length > 0 && (
+                      <div className="space-y-1">
+                        <div className="text-mine-muted text-xs">处置步骤:</div>
+                        {steps.map((step, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-xs">
+                            <span className={step.done ? 'text-mine-green' : 'text-mine-red'}>
+                              {step.done ? '✓' : '✗'}
+                            </span>
+                            <span className={step.done ? 'text-mine-text' : 'text-mine-muted'}>{step.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {event.reviewConclusion && (
+                      <div className="bg-mine-bg rounded p-2 text-xs">
+                        <div className="text-mine-amber mb-1">复盘结论:</div>
+                        <p className="text-mine-text">{event.reviewConclusion}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      onClick={() => handleCreateDrill(event.id)}
+                      className="mine-btn-primary text-xs flex items-center gap-1 py-1"
+                    >
+                      <Zap size={12} /> 一键生成演练计划
+                    </button>
+                    {event.reportUrl && (
+                      <a
+                        href={event.reportUrl}
+                        download
+                        className="text-mine-cyan text-xs hover:underline flex items-center gap-1"
+                      >
+                        <Download size={12} /> 下载事故报告
+                      </a>
+                    )}
+                  </div>
                 </div>
-                <p className="text-mine-text text-sm">{event.description}</p>
-                {event.closedBy && (
-                  <div className="text-xs text-mine-muted">
-                    关闭人: {event.closedBy} | 关闭时间: {event.closedAt}
-                  </div>
-                )}
-                {event.evacuationCount !== undefined && event.evacuationCount > 0 && (
-                  <div className="text-xs text-mine-muted">
-                    疏散人数: {event.evacuationCount}人
-                  </div>
-                )}
-                {event.reportUrl && (
-                  <a
-                    href={event.reportUrl}
-                    download
-                    className="text-mine-cyan text-xs hover:underline flex items-center gap-1"
-                  >
-                    <Download size={12} /> 下载事故报告
-                  </a>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

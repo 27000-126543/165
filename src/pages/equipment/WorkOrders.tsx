@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Wrench, Clock, CheckCircle, AlertCircle, Package, Calendar, UserCheck, History } from 'lucide-react';
+import { Wrench, Clock, CheckCircle, AlertCircle, Package, Calendar, UserCheck, History, Download } from 'lucide-react';
 import { useAppStore } from '@/store';
 
 type FilterKey = 'all' | 'pending' | 'in_progress' | 'completed';
@@ -31,11 +31,30 @@ const priorityCfg: Record<string, { label: string; cls: string }> = {
 
 export default function WorkOrders() {
   const [filter, setFilter] = useState<FilterKey>('all');
+  const [highlightId, setHighlightId] = useState<string | null>(null);
 
   const maintenanceOrders = useAppStore((s) => s.maintenanceOrders);
   const updateWorkOrderStatus = useAppStore((s) => s.updateWorkOrderStatus);
   const allAuditLogs = useAppStore((s) => s.auditLogs);
-  const auditLogs = useMemo(() => allAuditLogs.filter((l) => l.targetType === 'workorder').slice(0, 20), [allAuditLogs]);
+  const auditLogs = useMemo(() => allAuditLogs.filter((l) => l.targetType === 'workorder'), [allAuditLogs]);
+
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const urlHighlight = searchParams?.get('highlight');
+  if (urlHighlight && !highlightId) {
+    setHighlightId(urlHighlight);
+  }
+
+  const handleExportLogs = () => {
+    const header = '操作人,操作,详情,时间\n';
+    const rows = auditLogs.map((l) => `"${l.operator}","${l.action}","${l.detail}","${l.timestamp}"`).join('\n');
+    const blob = new Blob(['\uFEFF' + header + rows], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `工单操作留痕_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const filtered = filter === 'all' ? maintenanceOrders : maintenanceOrders.filter((o) => o.status === filter);
 
@@ -84,7 +103,7 @@ export default function WorkOrders() {
           const pc = priorityCfg[order.priority];
           const orderLogs = auditLogs.filter((l) => l.targetId === order.id);
           return (
-            <div key={order.id} className="mine-card space-y-3">
+            <div key={order.id} className={`mine-card space-y-3 transition-all ${highlightId === order.id ? 'ring-2 ring-mine-cyan/50' : ''}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-mine-text font-medium">{order.equipmentName}</span>
@@ -159,6 +178,31 @@ export default function WorkOrders() {
           );
         })}
       </div>
+
+      {auditLogs.length > 0 && (
+        <div className="mine-card">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <History className="w-4 h-4 text-mine-cyan" />
+              <span className="text-mine-text font-medium text-sm">全部操作留痕</span>
+              <span className="text-mine-muted text-xs">({auditLogs.length}条)</span>
+            </div>
+            <button onClick={handleExportLogs} className="mine-btn-outline text-xs py-1 flex items-center gap-1">
+              <Download size={12} />导出CSV
+            </button>
+          </div>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {auditLogs.slice(0, 20).map((log) => (
+              <div key={log.id} className="flex items-center gap-3 text-sm">
+                <span className="text-mine-cyan shrink-0">{log.operator}</span>
+                <span className="text-mine-text">{log.action}</span>
+                <span className="text-mine-muted text-xs truncate flex-1">{log.detail}</span>
+                <span className="text-mine-muted font-din text-xs ml-auto shrink-0">{log.timestamp}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

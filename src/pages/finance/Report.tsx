@@ -10,6 +10,8 @@ const approvalCfg: Record<string, { label: string; cls: string; color: string }>
   rejected: { label: '已驳回', cls: 'bg-mine-red/20 text-mine-red', color: 'text-mine-red' },
 };
 
+const quickRejectReasons = ['数据有误', '利润计算偏差', '需补充说明', '其他'];
+
 export default function Report() {
   const report = useAppStore((s) => s.financeReports[0]);
   const generateReport = useAppStore((s) => s.generateReport);
@@ -29,6 +31,7 @@ export default function Report() {
   if (!report) return null;
 
   const approval = approvalCfg[report.approvalStatus] || approvalCfg.draft;
+  const isApproved = report.approvalStatus === 'approved';
 
   const statCards = [
     { label: '总收入', value: `${(report.totalRevenue / 10000).toFixed(1)}万`, color: 'text-mine-green' },
@@ -234,13 +237,13 @@ export default function Report() {
 
       {exported && (
         <div className="bg-mine-cyan/10 border border-mine-cyan/30 text-mine-cyan text-sm px-4 py-2 rounded-lg animate-slide-up">
-          PDF已导出，请在
+          {isApproved ? '正式版' : ''}PDF已导出，请在
           <a
             href={`/vouchers/REPORT-${report.id}-EXPORT.pdf`}
             download
             className="text-mine-cyan underline mx-1"
           >
-            此处下载
+            {isApproved ? '下载正式版' : '此处下载'}
           </a>
         </div>
       )}
@@ -248,6 +251,21 @@ export default function Report() {
       {showReject && (
         <div className="bg-mine-card border border-mine-red/30 rounded-lg p-4 space-y-3 animate-slide-up">
           <div className="text-mine-red text-sm font-medium">输入驳回原因</div>
+          <div className="flex flex-wrap gap-2">
+            {quickRejectReasons.map((reason) => (
+              <button
+                key={reason}
+                onClick={() => setRejectReason(reason)}
+                className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                  rejectReason === reason
+                    ? 'bg-mine-red/20 border-mine-red/50 text-mine-red'
+                    : 'bg-mine-bg border-mine-border text-mine-muted hover:border-mine-red/30 hover:text-mine-red'
+                }`}
+              >
+                {reason}
+              </button>
+            ))}
+          </div>
           <input
             type="text"
             value={rejectReason}
@@ -292,7 +310,7 @@ export default function Report() {
           disabled={report.approvalStatus !== 'approved'}
         >
           {exported ? <Check size={16} /> : <Download size={16} />}
-          {exported ? '已导出' : '导出PDF'}
+          {exported ? '已导出' : isApproved ? '导出正式版PDF' : '导出PDF'}
         </button>
       </div>
 

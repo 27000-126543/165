@@ -43,6 +43,13 @@ const nextEmId = () => `EM${String(++emSeq).padStart(3,'0')}`;
 let alSeq = 100;
 const nextAlId = () => `AL${String(++alSeq).padStart(3,'0')}`;
 
+const typeLabels: Record<string, string> = {
+  gas_over: '瓦斯超标',
+  dust_over: '粉尘超标',
+  collapse: '坍塌',
+  flood: '水害',
+};
+
 interface AppState {
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
@@ -67,11 +74,13 @@ interface AppState {
 
   monitorPoints: MonitorPoint[];
   emergencyEvents: EmergencyEvent[];
+  drillPlans: DrillPlan[];
   saveThresholds: (updated: { id: string; gasThreshold: number; dustThreshold: number }[]) => void;
   triggerBroadcast: (eventId: string) => void;
   updateEmergencyDisposal: (eventId: string, data: { evacuationCount?: number; notifiedTeams?: string[] }) => void;
   toggleDisposalStep: (eventId: string, stepIndex: number) => void;
   closeEmergency: (eventId: string) => void;
+  createDrillPlan: (eventId: string) => void;
 
   oreSamples: OreSample[];
   processAdjustments: ProcessAdjustment[];
@@ -96,7 +105,7 @@ interface AppState {
 }
 
 const recalcUnread = (msgs: Message[], readIds: string[]): number => {
-  return msgs.filter((m) => !readIds.includes(m.id)).length;
+  return msgs.filter((m) => !m.read && !readIds.includes(m.id)).length;
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -137,6 +146,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         voucherUrl: `/vouchers/DISPATCH-${id}.pdf`,
         relatedRoute: '/production/tasks',
         relatedId: id,
+        sourceOperator: get().currentUser.name,
+        sourceTimestamp: now(),
       });
     }
     if (status === 'completed') {
@@ -151,6 +162,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         voucherUrl: `/vouchers/DISPATCH-${id}-DONE.pdf`,
         relatedRoute: '/production/tasks',
         relatedId: id,
+        sourceOperator: get().currentUser.name,
+        sourceTimestamp: now(),
       });
     }
   },
@@ -300,6 +313,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         voucherUrl: `/vouchers/WO-${moId}.pdf`,
         relatedRoute: '/equipment/workorders',
         relatedId: moId,
+        sourceOperator: get().currentUser.name,
+        sourceTimestamp: now(),
       });
     }
   },
@@ -347,6 +362,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         voucherUrl: `/vouchers/WO-${id}-DONE.pdf`,
         relatedRoute: '/equipment/workorders',
         relatedId: id,
+        sourceOperator: get().currentUser.name,
+        sourceTimestamp: now(),
       });
     }
   },
@@ -509,6 +526,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!event) return;
     const ts = now();
     const reportUrl = `/vouchers/EM-${eventId}-REPORT.pdf`;
+    const startTs = new Date(event.timestamp.replace(/-/g, '/')).getTime();
+    const endTs = new Date(ts.replace(/-/g, '/')).getTime();
+    const durationMin = Math.round((endTs - startTs) / 60000);
+    const disposalDuration = durationMin >= 60 ? `${Math.floor(durationMin / 60)}小时${durationMin % 60}分钟` : `${durationMin}分钟`;
+    const steps = event.disposalSteps || [];
+    const doneStepNames = steps.filter((s) => s.done).map((s) => s.name).join('、');
+    const reviewConclusion = `${event.location}区域${typeLabels[event.type] || event.type}事件，耗时${disposalDuration}，疏散${event.evacuationCount || 0}人，通知班组${(event.notifiedTeams || []).join('、') || '无'}，完成步骤: ${doneStepNames || '无'}`;
     set((s) => ({
       emergencyEvents: s.emergencyEvents.map((e) =>
         e.id === eventId ? {
@@ -517,7 +541,9 @@ export const useAppStore = create<AppState>((set, get) => ({
           closedAt: ts,
           closedBy: get().currentUser.name,
           reportUrl,
-          disposalSteps: (e.disposalSteps || []).map((step) => ({ ...step, done: true })),
+          disposalSteps: steps.map((step) => ({ ...step, done: true })),
+          reviewConclusion,
+          disposalDuration,
         } : e
       ),
     }));
@@ -525,18 +551,54 @@ export const useAppStore = create<AppState>((set, get) => ({
       action: '关闭应急事件',
       targetType: 'emergency',
       targetId: eventId,
-      detail: `${event.location}区域应急事件已关闭，事故报告已生成`,
+      detail: `${event.location}区域应急事件已关闭，耗时${disposalDuration}，事故报告已生成`,
       route: '/environment/emergency',
     });
     get().addMessage({
       type: 'emergency',
       title: '安全复盘通知',
-      content: `${event.location}区域应急事件已关闭处置，事故报告已生成，请相关人员查看复盘`,
+      content: `${event.location}区域应急事件已关闭处置，事故报告已生成，请相关人员查看复盘。${reviewConclusion}`,
       sender: '应急管理系统',
       recipients: ['安全员-赵强', '调度员-李明', '管理层'],
       level: 'info',
       hasVoucher: true,
       voucherUrl: reportUrl,
+      relatedRoute: '/environment/emergency',
+      relatedId: eventId,
+    });
+  },
+  createDrillPlan: (eventId) => {
+    const event = get().emergencyEvents.find((e) => e.id === eventId);
+    if (!event) return;
+    const drillId = `DR${String(Date.now()).slice(-6)}`;
+    const drill: DrillPlan = {
+      id: drillId,
+      eventId,
+      eventLocation: event.location,
+      eventType: event.type,
+      eventDescription: event.description,
+      createdAt: now(),
+      createdBy: get().currentUser.name,
+      status: 'notified',
+    };
+    set((s) => ({ drillPlans: [drill, ...s.drillPlans] }));
+    get().addAuditLog({
+      action: '创建演练计划',
+      targetType: 'drill',
+      targetId: drillId,
+      detail: `基于事件${eventId}创建演练计划，地点${event.location}`,
+      route: '/environment/emergency',
+      relatedObjectType: 'emergency',
+      relatedObjectId: eventId,
+    });
+    get().addMessage({
+      type: 'drill',
+      title: '应急演练计划通知',
+      content: `基于${event.location}区域历史事件，已生成应急演练计划${drillId}，请安全员和班组负责人安排演练`,
+      sender: '应急管理系统',
+      recipients: ['安全员-赵强', '采掘一班', '运输班'],
+      level: 'info',
+      hasVoucher: false,
       relatedRoute: '/environment/emergency',
       relatedId: eventId,
     });
@@ -569,6 +631,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       profit,
       profitMargin: margin,
       approvalStatus: 'draft',
+      rejectReason: undefined,
+      approvedBy: undefined,
+      approvedAt: undefined,
     };
     set({ financeReports: [newReport] });
     get().addAuditLog({
@@ -667,23 +732,26 @@ export const useAppStore = create<AppState>((set, get) => ({
   exportPdf: () => {
     const report = get().financeReports[0];
     if (!report) return;
+    const ts = now();
     get().addMessage({
       type: 'report',
-      title: '利润报表PDF导出',
-      content: `${report.period}利润报表PDF已生成，利润${(report.profit / 10000).toFixed(1)}万元，利润率${report.profitMargin}%`,
+      title: '利润报表PDF正式版导出',
+      content: `${report.period}利润报表PDF【正式版】已导出，利润${(report.profit / 10000).toFixed(1)}万元，利润率${report.profitMargin}%，导出人：${get().currentUser.name}，导出时间：${ts}`,
       sender: '财务分析系统',
-      recipients: ['调度员-李明'],
+      recipients: ['调度员-李明', '管理层'],
       level: 'info',
       hasVoucher: true,
-      voucherUrl: `/vouchers/REPORT-${report.id}-EXPORT.pdf`,
+      voucherUrl: `/vouchers/REPORT-${report.id}-FORMAL.pdf`,
       relatedRoute: '/finance/report',
       relatedId: report.id,
+      sourceOperator: get().currentUser.name,
+      sourceTimestamp: ts,
     });
     get().addAuditLog({
-      action: '导出PDF',
+      action: '导出PDF正式版',
       targetType: 'report',
       targetId: report.id,
-      detail: `${report.period}利润报表PDF已导出`,
+      detail: `${report.period}利润报表PDF正式版已导出`,
       route: '/finance/report',
     });
   },
@@ -747,6 +815,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   auditLogs: [],
+  drillPlans: [],
   addAuditLog: (log) => {
     const newLog: AuditLog = {
       ...log,

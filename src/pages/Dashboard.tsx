@@ -1,6 +1,7 @@
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ReactECharts from 'echarts-for-react'
-import { Users, BarChart3, Server, AlertTriangle, Shield, Factory, Cpu, Wind, Send, ClipboardCheck, Wrench, Siren, FileBarChart, ArrowRight } from 'lucide-react'
+import { Users, BarChart3, Server, AlertTriangle, Shield, Factory, Cpu, Wind, Send, ClipboardCheck, Wrench, Siren, FileBarChart, ArrowRight, ChevronDown, ChevronUp, MessageSquare, History, Eye } from 'lucide-react'
 import StatCard from '@/components/StatCard'
 import { useAppStore } from '@/store'
 
@@ -38,6 +39,7 @@ const targetIconMap: Record<string, typeof Send> = {
   report: FileBarChart,
   threshold: AlertTriangle,
   message: AlertTriangle,
+  drill: Siren,
 }
 
 const targetColorMap: Record<string, string> = {
@@ -48,6 +50,7 @@ const targetColorMap: Record<string, string> = {
   report: 'text-mine-blue',
   threshold: 'text-mine-amber',
   message: 'text-mine-red',
+  drill: 'text-mine-red',
 }
 
 const targetBgMap: Record<string, string> = {
@@ -58,6 +61,41 @@ const targetBgMap: Record<string, string> = {
   report: 'bg-mine-blue/10',
   threshold: 'bg-mine-amber/10',
   message: 'bg-mine-red/10',
+  drill: 'bg-mine-red/10',
+}
+
+const targetRouteMap: Record<string, (id: string) => string> = {
+  task: (id) => `/production/tasks?highlight=${id}`,
+  inspection: (id) => `/equipment/inspection?highlight=${id}`,
+  workorder: (id) => `/equipment/workorders?highlight=${id}`,
+  emergency: (id) => `/environment/emergency?highlight=${id}`,
+  report: (id) => `/finance/report?highlight=${id}`,
+  threshold: () => '/environment/thresholds',
+  drill: (id) => `/environment/emergency?highlight=${id}`,
+  message: () => '/messages',
+}
+
+const targetStatusLabel: Record<string, (id: string, store: ReturnType<typeof useAppStore.getState>) => string> = {
+  task: (id, s) => {
+    const t = s.productionTasks.find((x) => x.id === id)
+    const cfg: Record<string, string> = { draft: '草稿', issued: '已下达', in_progress: '进行中', completed: '已完成' }
+    return t ? cfg[t.status] || t.status : '—'
+  },
+  workorder: (id, s) => {
+    const o = s.maintenanceOrders.find((x) => x.id === id)
+    const cfg: Record<string, string> = { pending: '待处理', in_progress: '进行中', completed: '已完成' }
+    return o ? cfg[o.status] || o.status : '—'
+  },
+  emergency: (id, s) => {
+    const e = s.emergencyEvents.find((x) => x.id === id)
+    const cfg: Record<string, string> = { active: '活跃', disposal: '处置中', resolved: '已结束' }
+    return e ? cfg[e.status] || e.status : '—'
+  },
+  report: (id, s) => {
+    const r = s.financeReports.find((x) => x.id === id)
+    const cfg: Record<string, string> = { draft: '草稿', pending: '待审批', approved: '已通过', rejected: '已驳回' }
+    return r ? cfg[r.approvalStatus] || r.approvalStatus : '—'
+  },
 }
 
 export default function Dashboard() {
@@ -68,6 +106,14 @@ export default function Dashboard() {
   const equipmentList = useAppStore(s => s.equipmentList)
   const monitorPoints = useAppStore(s => s.monitorPoints)
   const auditLogs = useAppStore(s => s.auditLogs)
+  const messages = useAppStore(s => s.messages)
+  const readMessageIds = useAppStore(s => s.readMessageIds)
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null)
+
+  const isMsgRead = (id: string) => {
+    const m = messages.find((x) => x.id === id)
+    return m?.read || readMessageIds.includes(id)
+  }
 
   const undergroundCount = miners.filter(m => m.isUnderground).length
   const totalOutput = miningFaces.reduce((s, f) => s + f.currentOutput, 0)
@@ -202,9 +248,51 @@ export default function Dashboard() {
     ],
   }
 
+  const getRelatedMessages = (log: typeof auditLogs[0]) => {
+    return messages.filter((m) => {
+      if (m.relatedId === log.targetId) return true
+      if (log.relatedObjectType && log.relatedObjectId && m.relatedId === log.relatedObjectId) return true
+      return false
+    }).slice(0, 5)
+  }
+
+  const getRelatedLogs = (log: typeof auditLogs[0]) => {
+    const sameTarget = auditLogs.filter((l) => l.targetId === log.targetId && l.id !== log.id).slice(0, 5)
+    if (log.relatedObjectType && log.relatedObjectId) {
+      const linked = auditLogs.filter((l) => l.targetId === log.relatedObjectId && l.id !== log.id).slice(0, 3)
+      return [...sameTarget, ...linked].slice(0, 5)
+    }
+    return sameTarget
+  }
+
+  const getBusinessStatus = (log: typeof auditLogs[0]) => {
+    const store = useAppStore.getState()
+    const fn = targetStatusLabel[log.targetType]
+    if (fn) return fn(log.targetId, store)
+    if (log.relatedObjectType) {
+      const fn2 = targetStatusLabel[log.relatedObjectType]
+      if (fn2) return fn2(log.relatedObjectId, store)
+    }
+    return null
+  }
+
   const handleTimelineClick = (log: typeof auditLogs[0]) => {
-    if (log.route) {
+    setExpandedLogId(expandedLogId === log.id ? null : log.id)
+  }
+
+  const handleNavigate = (log: typeof auditLogs[0]) => {
+    const routeFn = targetRouteMap[log.targetType]
+    if (routeFn) {
+      navigate(routeFn(log.targetId))
+    } else if (log.route) {
       navigate(log.route)
+    }
+  }
+
+  const handleMsgNavigate = (msg: typeof messages[0]) => {
+    if (msg.relatedRoute) {
+      const route = msg.relatedId ? `${msg.relatedRoute}?highlight=${msg.relatedId}` : msg.relatedRoute
+      navigate(route)
     }
   }
 
@@ -299,8 +387,9 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 mb-3">
             <Send className="w-4 h-4 text-mine-cyan" />
             <span className="text-mine-text font-medium text-sm">调度态势时间轴</span>
+            <span className="text-mine-muted text-xs ml-auto">点击展开关联链路</span>
           </div>
-          <div className="max-h-64 overflow-y-auto space-y-0">
+          <div className="max-h-[500px] overflow-y-auto space-y-0">
             {auditLogs.length === 0 ? (
               <div className="text-mine-muted text-sm text-center py-8">暂无调度操作记录，执行业务操作后将在此展示</div>
             ) : (
@@ -308,31 +397,96 @@ export default function Dashboard() {
                 const Icon = targetIconMap[log.targetType] || AlertTriangle
                 const color = targetColorMap[log.targetType] || 'text-mine-muted'
                 const bg = targetBgMap[log.targetType] || 'bg-mine-border'
+                const isExpanded = expandedLogId === log.id
+                const relatedMsgs = isExpanded ? getRelatedMessages(log) : []
+                const relatedLogs = isExpanded ? getRelatedLogs(log) : []
+                const bizStatus = isExpanded ? getBusinessStatus(log) : null
                 return (
-                  <div
-                    key={log.id}
-                    className="flex gap-3 relative pb-4 cursor-pointer group"
-                    onClick={() => handleTimelineClick(log)}
-                  >
-                    <div className="flex flex-col items-center">
-                      <div className={`w-7 h-7 rounded-full ${bg} flex items-center justify-center shrink-0`}>
-                        <Icon size={14} className={color} />
+                  <div key={log.id}>
+                    <div
+                      className="flex gap-3 relative pb-2 cursor-pointer group"
+                      onClick={() => handleTimelineClick(log)}
+                    >
+                      <div className="flex flex-col items-center">
+                        <div className={`w-7 h-7 rounded-full ${bg} flex items-center justify-center shrink-0`}>
+                          <Icon size={14} className={color} />
+                        </div>
+                        <div className="w-px flex-1 bg-mine-border" />
                       </div>
-                      <div className="w-px flex-1 bg-mine-border" />
+                      <div className="flex-1 min-w-0 pb-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-mine-text text-sm font-medium">{log.action}</span>
+                          <span className="text-mine-muted text-[10px]">{log.targetType}#{log.targetId}</span>
+                          {isExpanded ? (
+                            <ChevronUp size={12} className="text-mine-cyan" />
+                          ) : (
+                            <ChevronDown size={12} className="text-mine-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                          )}
+                        </div>
+                        <p className="text-mine-muted text-xs mb-0.5">{log.detail}</p>
+                        <div className="flex items-center gap-3 text-[10px] text-mine-muted">
+                          <span>{log.operator}</span>
+                          <span className="font-din">{log.timestamp}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0 pb-1">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-mine-text text-sm font-medium">{log.action}</span>
-                        {log.route && (
-                          <ArrowRight size={10} className="text-mine-cyan opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                    {isExpanded && (
+                      <div className="ml-10 mb-3 border border-mine-border rounded-lg p-3 space-y-3 bg-mine-bg/50 animate-slide-up">
+                        {bizStatus && (
+                          <div className="flex items-center gap-2 text-xs">
+                            <Eye size={12} className="text-mine-cyan" />
+                            <span className="text-mine-muted">当前状态：</span>
+                            <span className="text-mine-text font-medium">{bizStatus}</span>
+                          </div>
                         )}
+
+                        {relatedMsgs.length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-1 text-xs text-mine-muted mb-1.5">
+                              <MessageSquare size={11} className="text-mine-blue" />关联消息
+                            </div>
+                            <div className="space-y-1">
+                              {relatedMsgs.map((m) => (
+                                <div
+                                  key={m.id}
+                                  className="flex items-center gap-2 text-xs bg-mine-card rounded px-2 py-1.5 cursor-pointer hover:bg-mine-border/30"
+                                  onClick={() => handleMsgNavigate(m)}
+                                >
+                                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isMsgRead(m.id) ? 'bg-mine-border' : 'bg-mine-cyan'}`} />
+                                  <span className={`${isMsgRead(m.id) ? 'text-mine-muted' : 'text-mine-text'} truncate flex-1`}>{m.title}</span>
+                                  <span className="text-mine-muted shrink-0">{m.timestamp.slice(5, 16)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {relatedLogs.length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-1 text-xs text-mine-muted mb-1.5">
+                              <History size={11} className="text-mine-amber" />关联操作
+                            </div>
+                            <div className="space-y-1">
+                              {relatedLogs.map((l) => (
+                                <div key={l.id} className="flex items-center gap-2 text-xs text-mine-muted">
+                                  <span className="text-mine-cyan">{l.operator}</span>
+                                  <span>{l.action}</span>
+                                  <span className="font-din ml-auto shrink-0">{l.timestamp.slice(11, 16)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <button
+                          onClick={() => handleNavigate(log)}
+                          className="mine-btn-outline text-xs py-1 flex items-center gap-1"
+                        >
+                          <ArrowRight size={11} />跳转到业务详情
+                        </button>
                       </div>
-                      <p className="text-mine-muted text-xs mb-0.5">{log.detail}</p>
-                      <div className="flex items-center gap-3 text-[10px] text-mine-muted">
-                        <span>{log.operator}</span>
-                        <span className="font-din">{log.timestamp}</span>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 )
               })
