@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Radio, AlertTriangle, FileText, X, MapPin, Volume2, Clock, Users, CheckCircle, ChevronDown, ChevronUp, Download, ShieldCheck, Zap } from 'lucide-react';
 import { useAppStore } from '@/store';
 
@@ -36,9 +36,31 @@ export default function Emergency() {
   const [teamInput, setTeamInput] = useState<Record<string, string>>({});
   const [closeConfirmId, setCloseConfirmId] = useState<string | null>(null);
   const [drillSuccessId, setDrillSuccessId] = useState<string | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hl = params.get('highlight');
+    if (hl) {
+      setHighlightId(hl);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (highlightId && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightId]);
 
   const activeEvents = emergencyEvents.filter((e) => e.status === 'active' || e.status === 'disposal');
   const resolvedEvents = emergencyEvents.filter((e) => e.status === 'resolved');
+
+  const isExpanded = (eventId: string) => {
+    if (expandedId === eventId) return true;
+    if (highlightId === eventId && expandedId === null) return true;
+    return false;
+  };
 
   const handleTopBroadcast = () => {
     if (activeEvents.length === 0) {
@@ -158,11 +180,12 @@ export default function Emergency() {
           <div className="grid grid-cols-2 gap-4">
             {activeEvents.map((event) => {
               const lCfg = levelConfig[event.level];
-              const isExpanded = expandedId === event.id;
+              const expanded = isExpanded(event.id);
+              const isHighlighted = highlightId === event.id;
               const steps = event.disposalSteps || [];
               const doneSteps = steps.filter((s) => s.done).length;
               return (
-                <div key={event.id} className="mine-card space-y-3 border-l-4 border-l-mine-red">
+                <div key={event.id} ref={isHighlighted ? highlightRef : undefined} className={`mine-card space-y-3 border-l-4 border-l-mine-red transition-all ${isHighlighted ? 'ring-2 ring-mine-cyan/50' : ''}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className={`text-xs px-2 py-0.5 rounded ${lCfg.bg} ${lCfg.color} ${lCfg.border} border`}>
@@ -191,15 +214,15 @@ export default function Emergency() {
                       <Radio size={12} /> 触发广播
                     </button>
                     <button
-                      onClick={() => setExpandedId(isExpanded ? null : event.id)}
+                      onClick={() => setExpandedId(expanded ? null : event.id)}
                       className="mine-btn-outline text-xs flex items-center gap-1 py-1"
                     >
-                      {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                      {isExpanded ? '收起处置' : '处置流程'}
+                      {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                      {expanded ? '收起处置' : '处置流程'}
                     </button>
                   </div>
 
-                  {isExpanded && (
+                  {expanded && (
                     <div className="space-y-4 pt-3 border-t border-mine-border" onClick={(e) => e.stopPropagation()}>
                       <div>
                         <div className="text-mine-text text-xs font-medium mb-2">处置步骤进度 ({doneSteps}/{steps.length})</div>

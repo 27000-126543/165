@@ -62,7 +62,10 @@ export default function Messages() {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  const isRead = (id: string) => readMessageIds.includes(id);
+  const isRead = (id: string) => {
+    const m = messages.find((x) => x.id === id);
+    return m?.read || readMessageIds.includes(id);
+  };
 
   const unreadList = useMemo(() => messages.filter((m) => !isRead(m.id)), [messages, readMessageIds]);
 
@@ -82,7 +85,6 @@ export default function Messages() {
         const read = isRead(m.id);
         if (!read) return false;
         if ((m.level === 'critical' || m.level === 'error') && !m.confirmedBy) return false;
-        if (m.type === 'approval' && !isRead(m.id)) return false;
         return true;
       }),
     [messages, readMessageIds]

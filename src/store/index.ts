@@ -192,6 +192,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       voucherUrl: `/vouchers/DISPATCH-${id}.pdf`,
       relatedRoute: '/production/tasks',
       relatedId: id,
+      sourceOperator: get().currentUser.name,
+      sourceTimestamp: now(),
     });
   },
   updateTaskAssigned: (id, assigned) => {
@@ -219,6 +221,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       voucherUrl: `/vouchers/DISPATCH-${id}.pdf`,
       relatedRoute: '/production/tasks',
       relatedId: id,
+      sourceOperator: get().currentUser.name,
+      sourceTimestamp: now(),
     });
   },
 
@@ -264,16 +268,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     }));
 
-    get().addAuditLog({
-      action: '提交巡检',
-      targetType: 'inspection',
-      targetId: newRecord.id,
-      detail: `${eq.name}巡检：振动${vibration}mm/s，温度${temperature}°C${notes ? '，备注：' + notes : ''}`,
-      route: '/equipment/inspection',
-    });
-
+    let generatedMoId: string | undefined;
     if (vibration > 5 || temperature > 85) {
       const moId = nextMoId();
+      generatedMoId = moId;
       const faultDesc = vibration > 5 && temperature > 85
         ? `异常振动(${vibration}mm/s)与高温(${temperature}°C)，设备运行严重异常`
         : vibration > 5
@@ -301,6 +299,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         targetId: moId,
         detail: `${eq.name}巡检异常，自动生成维修工单${moId}`,
         route: '/equipment/workorders',
+        relatedObjectType: 'inspection',
+        relatedObjectId: newRecord.id,
       });
       get().addMessage({
         type: 'fault',
@@ -317,6 +317,16 @@ export const useAppStore = create<AppState>((set, get) => ({
         sourceTimestamp: now(),
       });
     }
+
+    get().addAuditLog({
+      action: '提交巡检',
+      targetType: 'inspection',
+      targetId: newRecord.id,
+      detail: `${eq.name}巡检：振动${vibration}mm/s，温度${temperature}°C${notes ? '，备注：' + notes : ''}`,
+      route: '/equipment/inspection',
+      relatedObjectType: generatedMoId ? 'workorder' : undefined,
+      relatedObjectId: generatedMoId || undefined,
+    });
   },
   updateWorkOrderStatus: (id, status) => {
     const order = get().maintenanceOrders.find((o) => o.id === id);
@@ -670,6 +680,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       voucherUrl: `/vouchers/REPORT-${report.id}.pdf`,
       relatedRoute: '/finance/report',
       relatedId: report.id,
+      sourceOperator: get().currentUser.name,
+      sourceTimestamp: now(),
     });
   },
   approveReport: () => {
@@ -699,6 +711,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       voucherUrl: `/vouchers/REPORT-${report.id}-APPROVED.pdf`,
       relatedRoute: '/finance/report',
       relatedId: report.id,
+      sourceOperator: '管理层-张总',
+      sourceTimestamp: ts,
     });
   },
   rejectReport: (reason) => {
@@ -727,6 +741,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       hasVoucher: false,
       relatedRoute: '/finance/report',
       relatedId: report.id,
+      sourceOperator: '管理层-张总',
+      sourceTimestamp: ts,
     });
   },
   exportPdf: () => {

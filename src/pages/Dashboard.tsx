@@ -252,17 +252,28 @@ export default function Dashboard() {
     return messages.filter((m) => {
       if (m.relatedId === log.targetId) return true
       if (log.relatedObjectType && log.relatedObjectId && m.relatedId === log.relatedObjectId) return true
+      if (m.relatedId && log.relatedObjectId === m.relatedId) return true
       return false
-    }).slice(0, 5)
+    }).slice(0, 8)
   }
 
   const getRelatedLogs = (log: typeof auditLogs[0]) => {
-    const sameTarget = auditLogs.filter((l) => l.targetId === log.targetId && l.id !== log.id).slice(0, 5)
-    if (log.relatedObjectType && log.relatedObjectId) {
-      const linked = auditLogs.filter((l) => l.targetId === log.relatedObjectId && l.id !== log.id).slice(0, 3)
-      return [...sameTarget, ...linked].slice(0, 5)
-    }
-    return sameTarget
+    const ids = new Set<string>([log.targetId])
+    if (log.relatedObjectId) ids.add(log.relatedObjectId)
+    const sameOrLinked = auditLogs.filter((l) => {
+      if (l.id === log.id) return false
+      if (ids.has(l.targetId)) return true
+      if (l.relatedObjectId && ids.has(l.relatedObjectId)) return true
+      if (l.relatedObjectId === log.targetId || l.targetId === log.relatedObjectId) return true
+      return false
+    })
+    const seen = new Set<string>()
+    return sameOrLinked.filter((l) => {
+      const key = l.id
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    }).slice(0, 8)
   }
 
   const getBusinessStatus = (log: typeof auditLogs[0]) => {
